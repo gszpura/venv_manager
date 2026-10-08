@@ -25,7 +25,9 @@ dev = ["pytest>=7"]
 vvm = "vvm.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/anomalyco/vvm"
+Homepage = "https://github.com/gszpura/venv_manager"
+Repository = "https://github.com/gszpura/venv_manager"
+Issues = "https://github.com/gszpura/venv_manager/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vvm"]

@@ -2,16 +2,16 @@
 # vvm installer — downloads the standalone vvm.pyz release artifact.
 #
 # Quick start:
-#   curl -fsSL https://raw.githubusercontent.com/anomalyco/vvm/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/gszpura/venv_manager/main/install.sh | sh
 #
 # Pin a version:
-#   curl -fsSL https://raw.githubusercontent.com/anomalyco/vvm/main/install.sh | VVM_VERSION=v0.1.0 sh
+#   curl -fsSL https://raw.githubusercontent.com/gszpura/venv_manager/main/install.sh | VVM_VERSION=v0.1.0 sh
 #
 # Uninstall:
-#   curl -fsSL https://raw.githubusercontent.com/anomalyco/vvm/main/install.sh | sh -s -- uninstall
+#   curl -fsSL https://raw.githubusercontent.com/gszpura/venv_manager/main/install.sh | sh -s -- uninstall
 #
 # Environment overrides:
-#   VVM_REPO      GitHub owner/repo            (default: anomalyco/vvm)
+#   VVM_REPO      GitHub owner/repo            (default: gszpura/venv_manager)
 #   VVM_VERSION   release tag, or "latest"     (default: latest)
 #   VVM_BIN_DIR   install directory            (default: ~/.local/bin)
 #   VVM_ASSET     release asset filename       (default: vvm.pyz)
@@ -24,7 +24,7 @@
 
 set -eu
 
-REPO="${VVM_REPO:-anomalyco/vvm}"
+REPO="${VVM_REPO:-gszpura/venv_manager}"
 VERSION="${VVM_VERSION:-latest}"
 BIN_DIR="${VVM_BIN_DIR:-$HOME/.local/bin}"
 ASSET="${VVM_ASSET:-vvm.pyz}"
