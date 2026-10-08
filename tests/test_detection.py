@@ -1,0 +1,68 @@
+from vvm.cache import VenvCache
+from vvm.detection import (
+    ConfiguredDirStrategy,
+    CurrentDirStrategy,
+    VenvDetector,
+    VenvLocator,
+    python_version,
+)
+from vvm.inspection import (
+    CategoryClassifier,
+    PackageInspector,
+)
+from vvm.models import VenvCategory
+
+
+class FakeInspector(PackageInspector):
+    def __init__(self, mapping):
+        self.mapping = mapping
+        self.calls = []
+
+    def list_packages(self, venv_path):
+        self.calls.append(str(venv_path))
+        return frozenset(self.mapping.get(venv_path.name, ()))
+
+
+class RecordingClassifier(CategoryClassifier):
+    def __init__(self):
+        self.calls = 0
+
+    def classify(self, venv_path, packages):
+        self.calls += 1
+        return (VenvCategory.UNKNOWN,)
+
+
+def test_current_dir_strategy(make_venv):
+    root = make_venv(".venv").parent
+    located = list(CurrentDirStrategy(root, [".venv", "venv"]).locate())
+    assert [p.name for p in located] == [".venv", "venv"]
+
+
+def test_locator_filters_and_dedupes(make_venv):
+    root = make_venv("envs")
+    venv = make_venv("envs/a")
+    (root / "notavenv").mkdir()
+    locator = VenvLocator([ConfiguredDirStrategy([root]), ConfiguredDirStrategy([root])])
+    assert locator.locate() == [venv]
+
+
+def test_python_version(make_venv):
+    assert python_version(make_venv("e", version="3.9.16.final.0")) == "3.9.16"
+
+
+def test_detector_builds_and_caches(make_venv, tmp_path):
+    venv = make_venv(".venv")
+    inspector = FakeInspector({".venv": {"flask", "requests"}})
+    classifier = RecordingClassifier()
+    cache = VenvCache(tmp_path / "cache.json")
+    detector = VenvDetector(VenvLocator([CurrentDirStrategy(venv.parent, [".venv"])]), inspector, classifier, cache)
+
+    result = detector.detect()
+    assert len(result) == 1
+    assert result[0].packages == frozenset({"flask", "requests"})
+    assert result[0].python_version == "3.11.5"
+    assert classifier.calls == 1
+
+    detector.detect()  # second run served from cache
+    assert classifier.calls == 1
+    assert inspector.calls == [str(venv)]
