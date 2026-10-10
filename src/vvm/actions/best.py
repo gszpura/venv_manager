@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import TextIO
 
+from vvm.actions.base import Action
 from vvm.detection import VenvDetector
 from vvm.linking import VenvLinker
 from vvm.matching import VenvMatcher
@@ -14,7 +14,7 @@ from vvm.requirements import ProjectRequirementsReader
 DEFAULT_LINK_NAME = ".venv"
 
 
-class BestAction:
+class BestAction(Action):
     """Reads project requirements, chooses the best venv and links it.
 
     A complete match is linked (unless linking is disabled) and the action
@@ -34,6 +34,7 @@ class BestAction:
         link_name: str = DEFAULT_LINK_NAME,
         out: TextIO | None = None,
     ) -> None:
+        super().__init__(out)
         self.detector = detector
         self.reader = reader
         self.matcher = matcher
@@ -42,7 +43,6 @@ class BestAction:
         self.link = link
         self.force = force
         self.link_name = link_name
-        self.out = out or sys.stdout
 
     def run(self) -> int:
         requirements = self.reader.read(self.project_dir)

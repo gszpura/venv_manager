@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import sys
 from abc import ABC, abstractmethod
 from typing import TextIO
 
+from vvm.actions.base import Action
 from vvm.detection import VenvDetector
 from vvm.models import Venv
 
@@ -25,7 +25,7 @@ class PlainVenvFormatter(VenvFormatter):
         return f"{venv.path} [{venv.primary_category.value}] {venv.package_count} packages"
 
 
-class DetectAction:
+class DetectAction(Action):
     """Detects venvs and prints a one-line summary for each."""
 
     def __init__(
@@ -34,9 +34,9 @@ class DetectAction:
         formatter: VenvFormatter | None = None,
         out: TextIO | None = None,
     ) -> None:
+        super().__init__(out)
         self.detector = detector
         self.formatter = formatter or PlainVenvFormatter()
-        self.out = out or sys.stdout
 
     def run(self) -> int:
         venvs = self.detector.detect()

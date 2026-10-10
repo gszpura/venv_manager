@@ -42,6 +42,24 @@ def test_best_without_requirements_returns_one(tmp_path, capsys):
     assert "No project requirements found" in capsys.readouterr().out
 
 
+def test_config_command_shows_path_and_content(tmp_path, capsys):
+    config = tmp_path / "config.toml"
+    config.write_text('search_dirs = ["/x"]\n')
+    assert main(["config", "--config", str(config)]) == 0
+    out = capsys.readouterr().out
+    assert f"Config path: {config}" in out
+    assert 'search_dirs = ["/x"]' in out
+    assert "Default search paths:" in out
+
+
+def test_config_command_missing_file(tmp_path, capsys):
+    missing = tmp_path / "nope.toml"
+    assert main(["config", "--config", str(missing)]) == 0
+    out = capsys.readouterr().out
+    assert f"Config path: {missing}" in out
+    assert "Config content:\n\n" in out
+
+
 def test_common_options_accepted_before_and_after_subcommand(tmp_path):
     parser = build_parser()
     after = parser.parse_args(["detect", "-C", "/x", "--config", "/c"])

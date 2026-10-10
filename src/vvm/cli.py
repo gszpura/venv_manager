@@ -7,7 +7,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from vvm import __version__
-from vvm.config import ConfigLoader
 from vvm.manager import VenvManager
 
 
@@ -44,6 +43,11 @@ def build_parser() -> argparse.ArgumentParser:
     detect = subparsers.add_parser("detect", help="list detected virtual environments")
     _add_common_options(detect)
 
+    config = subparsers.add_parser(
+        "config", help="show the config file path, its contents and default search paths"
+    )
+    _add_common_options(config)
+
     best = subparsers.add_parser("best", help="find and link the best venv for a project")
     _add_common_options(best)
     best.add_argument(
@@ -70,12 +74,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_path = getattr(args, "config", None)
-    config = ConfigLoader(Path(config_path)).load() if config_path else ConfigLoader().load()
-    manager = VenvManager(config=config, use_cache=not getattr(args, "no_cache", False))
+    manager = VenvManager(
+        config_path=Path(config_path) if config_path else None,
+        use_cache=not getattr(args, "no_cache", False),
+    )
 
     directory = Path(getattr(args, "directory", "."))
     if args.command == "detect":
         return manager.detect(directory=directory)
+    if args.command == "config":
+        return manager.show_config()
     if args.command == "best":
         return manager.best(
             project_dir=directory,

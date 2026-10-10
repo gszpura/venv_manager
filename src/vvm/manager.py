@@ -11,7 +11,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TextIO
 
-from vvm.actions import BestAction, DetectAction, PlainVenvFormatter, VenvFormatter
+from vvm.actions import (
+    BestAction,
+    ConfigAction,
+    DetectAction,
+    PlainVenvFormatter,
+    VenvFormatter,
+)
 from vvm.cache import VenvCache
 from vvm.config import Config, ConfigLoader
 from vvm.detection import (
@@ -46,8 +52,17 @@ class VenvManager:
         formatter: VenvFormatter | None = None,
         cache: VenvCache | None = None,
         use_cache: bool = True,
+        config_path: Path | None = None,
     ) -> None:
-        self.config = config if config is not None else ConfigLoader().load()
+        if config is not None:
+            self.config = config
+            self.config_path = (
+                Path(config_path).expanduser() if config_path is not None else ConfigLoader.default_path()
+            )
+        else:
+            loader = ConfigLoader(config_path)
+            self.config = loader.load()
+            self.config_path = loader.path
         self.inspector = inspector or ImportlibMetadataInspector()
         self.classifier = classifier or DefaultCategoryClassifier()
         self.matcher = matcher or VenvMatcher()
@@ -78,6 +93,15 @@ class VenvManager:
         """Run the ``detect`` feature and return its exit code."""
         target = Path(directory) if directory is not None else Path.cwd()
         return DetectAction(self.detector_for(target), self.formatter, out).run()
+
+    def show_config(self, out: TextIO | None = None) -> int:
+        """Run the ``config`` feature and return its exit code."""
+        action = ConfigAction(
+            config_path=self.config_path,
+            default_search_dirs=Config.from_mapping({}).search_dirs,
+            out=out,
+        )
+        return action.run()
 
     def best(
         self,
