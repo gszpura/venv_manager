@@ -23,31 +23,23 @@ The workflow then:
 Running the workflow manually (`workflow_dispatch`) performs the same build but
 uploads the artifacts instead of creating a release.
 
-## Build the standalone executable locally
-
-```bash
-python scripts/build_zipapp.py -o dist/vvm.pyz
-./dist/vvm.pyz --version
-```
-
-`vvm.pyz` is a single-file executable with a `#!/usr/bin/env python3` shebang.
-It has no runtime dependencies but requires a Python 3.11+ interpreter on
-`PATH`.
-
 ## Installer
 
-[`install.sh`](install.sh) downloads a released `vvm.pyz` and places it on
-`PATH`. It supports the following environment variables:
+[`local_install.sh`](local_install.sh) builds `vvm.pyz` from this checkout and
+installs it, overriding the `vvm` already on `PATH` (or installing it if not
+present):
 
-| Variable           | Default                                              |
-| ------------------ | ---------------------------------------------------- |
-| `VVM_REPO`         | `gszpura/venv_manager`                               |
-| `VVM_VERSION`      | `latest`                                             |
-| `VVM_BIN_DIR`      | `~/.local/bin`                                       |
-| `VVM_ASSET`        | `vvm.pyz`                                            |
-| `VVM_RELEASE_BASE` | GitHub release URL for `VVM_REPO`/`VVM_VERSION`      |
-| `VVM_PYZ_URL`      | full URL to `vvm.pyz` (overrides repo/version)       |
-| `VVM_NO_VERIFY`    | unset; set to `1` to skip `SHA256SUMS` verification  |
+```bash
+./local_install.sh
+```
 
-When a release publishes `SHA256SUMS`, the installer verifies the downloaded
-artifact against it (skipped when `VVM_PYZ_URL` is set or `VVM_NO_VERIFY=1`).
+It supports the following environment variables:
+
+| Variable      | Default                                               |
+| ------------- | ----------------------------------------------------- |
+| `VVM_PYTHON`  | `python3` (interpreter used to build `vvm.pyz`)       |
+| `VVM_BIN_DIR` | directory of the `vvm` on `PATH`, else `~/.local/bin` |
+| `VVM_TARGET`  | full install path; overrides `VVM_BIN_DIR`            |
+
+The existing target is replaced with the freshly built `vvm.pyz`. The installer
+fails if the target is not writable.
