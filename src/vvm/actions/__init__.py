@@ -4,6 +4,7 @@ from vvm.actions.base import Action
 from vvm.actions.best import BestAction
 from vvm.actions.config import ConfigAction
 from vvm.actions.detect import DetectAction, PlainVenvFormatter, VenvFormatter
+from vvm.actions.unlink import UnlinkAction
 
 __all__ = [
     "Action",
@@ -11,5 +12,6 @@ __all__ = [
     "ConfigAction",
     "DetectAction",
     "PlainVenvFormatter",
+    "UnlinkAction",
     "VenvFormatter",
 ]

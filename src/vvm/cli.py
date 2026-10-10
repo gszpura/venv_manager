@@ -43,6 +43,9 @@ def build_parser() -> argparse.ArgumentParser:
     detect = subparsers.add_parser("detect", help="list detected virtual environments")
     _add_common_options(detect)
 
+    list_cmd = subparsers.add_parser("list", help="alias for detect")
+    _add_common_options(list_cmd)
+
     config = subparsers.add_parser(
         "config", help="show the config file path, its contents and default search paths"
     )
@@ -66,6 +69,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=".venv",
         help="name of the link to create in the project (default: .venv)",
     )
+
+    unlink = subparsers.add_parser("unlink", help="remove the venv link from a project")
+    _add_common_options(unlink)
+    unlink.add_argument(
+        "--link-name",
+        default=".venv",
+        help="name of the link to remove in the project (default: .venv)",
+    )
     return parser
 
 
@@ -78,7 +89,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     manager = VenvManager(config_path=Path(config_path) if config_path else None)
 
     directory = Path(getattr(args, "directory", "."))
-    if args.command == "detect":
+    if args.command in ("detect", "list"):
         return manager.run("detect", directory=directory, use_cache=use_cache)
     if args.command == "config":
         return manager.run("config", config_path=manager.config_path)
@@ -91,5 +102,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             link_name=args.link_name,
             use_cache=use_cache,
         )
+    if args.command == "unlink":
+        return manager.run("unlink", project_dir=directory, link_name=args.link_name)
     parser.error(f"unknown command: {args.command}")  # pragma: no cover
     return 2

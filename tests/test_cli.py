@@ -32,6 +32,38 @@ def test_detect_no_venvs(tmp_path, capsys):
     assert "No virtual environments found." in capsys.readouterr().out
 
 
+def test_list_is_alias_for_detect(tmp_path, capsys):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    project = tmp_path / "proj"
+    project.mkdir()
+    config = _config(tmp_path, empty)
+    assert main(["list", "-C", str(project), "--config", str(config)]) == 0
+    assert "No virtual environments found." in capsys.readouterr().out
+
+
+def test_unlink_command_removes_link(tmp_path, capsys):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    config = _config(tmp_path, empty)
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".venv").symlink_to(empty)
+    assert main(["unlink", "-C", str(project), "--config", str(config)]) == 0
+    assert not (project / ".venv").exists()
+    assert "Removed" in capsys.readouterr().out
+
+
+def test_unlink_command_without_link(tmp_path, capsys):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    config = _config(tmp_path, empty)
+    project = tmp_path / "proj"
+    project.mkdir()
+    assert main(["unlink", "-C", str(project), "--config", str(config)]) == 1
+    assert "No link found" in capsys.readouterr().out
+
+
 def test_best_without_requirements_returns_one(tmp_path, capsys):
     empty = tmp_path / "empty"
     empty.mkdir()

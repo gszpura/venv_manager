@@ -15,11 +15,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from vvm.actions import BestAction, ConfigAction, DetectAction
+from vvm.actions import BestAction, ConfigAction, DetectAction, UnlinkAction
 from vvm.actions.base import Action
 from vvm.config import Config, ConfigLoader
 
-DEFAULT_ACTIONS: tuple[type[Action], ...] = (DetectAction, BestAction, ConfigAction)
+DEFAULT_ACTIONS: tuple[type[Action], ...] = (
+    DetectAction,
+    BestAction,
+    UnlinkAction,
+    ConfigAction,
+)
 
 
 class VenvManager:

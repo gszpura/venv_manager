@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from vvm.actions import Action, BestAction, ConfigAction, DetectAction
+from vvm.actions import Action, BestAction, ConfigAction, DetectAction, UnlinkAction
 from vvm.actions.config import _SEPARATOR
 from vvm.config import Config
 from vvm.linking import SymlinkLinker
@@ -57,11 +57,12 @@ def test_build_factories_return_actions(tmp_path):
     assert isinstance(DetectAction.build(config, directory=tmp_path, use_cache=False), DetectAction)
     assert isinstance(BestAction.build(config, project_dir=tmp_path, use_cache=False), BestAction)
     assert isinstance(ConfigAction.build(config, config_path=tmp_path / "config.toml"), ConfigAction)
+    assert isinstance(UnlinkAction.build(config, project_dir=tmp_path), UnlinkAction)
 
 
 def test_manager_registers_default_actions():
     manager = VenvManager(config=Config.from_mapping({}))
-    assert set(manager.actions) == {"detect", "best", "config"}
+    assert set(manager.actions) == {"detect", "best", "unlink", "config"}
 
 
 def test_manager_unknown_action_raises():
@@ -89,6 +90,29 @@ def test_config_action_missing_file_has_empty_content(tmp_path, capsys):
     out = capsys.readouterr().out
     assert f"Config path: {missing}" in out
     assert f"Config content:\n\n{_SEPARATOR}" in out
+
+
+def test_unlink_action_removes_link(tmp_path, capsys):
+    source = tmp_path / "real"
+    source.mkdir()
+    target = tmp_path / ".venv"
+    target.symlink_to(source)
+    assert UnlinkAction(SymlinkLinker(), project_dir=tmp_path).run() == 0
+    assert not target.exists()
+    assert "Removed" in capsys.readouterr().out
+
+
+def test_unlink_action_without_link(tmp_path, capsys):
+    assert UnlinkAction(SymlinkLinker(), project_dir=tmp_path).run() == 1
+    assert "No link found" in capsys.readouterr().out
+
+
+def test_unlink_action_refuses_non_link(tmp_path, capsys):
+    target = tmp_path / ".venv"
+    target.mkdir()
+    assert UnlinkAction(SymlinkLinker(), project_dir=tmp_path).run() == 1
+    assert "non-symlink" in capsys.readouterr().out
+    assert target.is_dir()
 
 
 def test_detect_action_empty(capsys):

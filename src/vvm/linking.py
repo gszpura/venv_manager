@@ -13,11 +13,19 @@ class LinkingError(Exception):
 
 
 class VenvLinker(ABC):
-    """Creates a link from a project path to a resolved virtual environment."""
+    """Creates or removes a link from a project path to a resolved venv."""
 
     @abstractmethod
     def link(self, venv: Venv, target: Path, force: bool = False) -> Path:
         """Link ``target`` to ``venv`` and return the link path."""
+
+    @abstractmethod
+    def unlink(self, target: Path) -> Path | None:
+        """Remove a link previously created at ``target``.
+
+        Returns the removed path, or ``None`` when there is nothing to remove.
+        Raises :class:`LinkingError` if ``target`` exists but is not a link.
+        """
 
 
 class SymlinkLinker(VenvLinker):
@@ -51,3 +59,12 @@ class SymlinkLinker(VenvLinker):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.symlink_to(source)
         return target
+
+    def unlink(self, target: Path) -> Path | None:
+        target = Path(target)
+        if target.is_symlink():
+            target.unlink()
+            return target
+        if target.exists():
+            raise LinkingError(f"refusing to remove non-symlink {target}")
+        return None
