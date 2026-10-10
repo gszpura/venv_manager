@@ -52,12 +52,13 @@ def test_config_command_shows_path_and_content(tmp_path, capsys):
     assert "Default search paths:" in out
 
 
-def test_config_command_missing_file(tmp_path, capsys):
+def test_config_command_creates_missing_file(tmp_path, capsys):
     missing = tmp_path / "nope.toml"
     assert main(["config", "--config", str(missing)]) == 0
     out = capsys.readouterr().out
     assert f"Config path: {missing}" in out
-    assert "Config content:\n\n" in out
+    assert missing.is_file()
+    assert "[categories]" in out
 
 
 def test_common_options_accepted_before_and_after_subcommand(tmp_path):

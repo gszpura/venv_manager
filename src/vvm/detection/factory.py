@@ -29,6 +29,6 @@ def build_detector(config: Config, directory: Path, *, use_cache: bool = True) -
     return VenvDetector(
         VenvLocator(strategies),
         ImportlibMetadataInspector(),
-        DefaultCategoryClassifier(),
+        DefaultCategoryClassifier(config.categories),
         cache,
     )

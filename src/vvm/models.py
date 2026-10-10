@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 
 _NORMALIZE_RE = re.compile(r"[-_.]+")
+
+UNKNOWN_CATEGORY = "unknown"
 
 
 def normalize_name(name: str) -> str:
@@ -20,14 +21,16 @@ def normalize_name(name: str) -> str:
     return _NORMALIZE_RE.sub("-", name).strip().lower()
 
 
-class VenvCategory(str, Enum):
-    """Category assigned to a virtual environment.
+@dataclass(frozen=True)
+class CategoryRule:
+    """A named category and the "prolific" packages that trigger it.
 
-    Only ``UNKNOWN`` exists for now; the enum is the single extension point
-    for future classification rules.
+    Rules are evaluated in order; the first rule with an installed package
+    wins. A rule with no packages acts as the catch-all.
     """
 
-    UNKNOWN = "unknown"
+    name: str
+    packages: frozenset = field(default_factory=frozenset)
 
 
 @dataclass(frozen=True)
@@ -54,7 +57,7 @@ class Venv:
     path: Path
     packages: frozenset = field(default_factory=frozenset)
     python_version: str | None = None
-    categories: tuple[VenvCategory, ...] = ()
+    categories: tuple[str, ...] = ()
 
     @property
     def name(self) -> str:
@@ -65,8 +68,8 @@ class Venv:
         return len(self.packages)
 
     @property
-    def primary_category(self) -> VenvCategory:
-        return self.categories[0] if self.categories else VenvCategory.UNKNOWN
+    def primary_category(self) -> str:
+        return self.categories[0] if self.categories else UNKNOWN_CATEGORY
 
 
 @dataclass(frozen=True)

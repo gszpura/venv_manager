@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from vvm.category_defaults import DEFAULT_CONFIG_TOML
+from vvm.models import CategoryRule, normalize_name
 from vvm.toml_io import read_toml
 
 DEFAULT_VENV_NAMES: tuple[str, ...] = (".venv", "venv", "env", ".virtualenv", "virtualenv")
@@ -126,6 +128,29 @@ def _expand_unique(paths: Iterable[Path]) -> tuple[Path, ...]:
     return tuple(unique)
 
 
+def _parse_categories(value: Any) -> tuple[CategoryRule, ...]:
+    """Build ordered category rules from the ``[categories]`` config table.
+
+    The table's key order is the priority order. Anything malformed is skipped
+    so a broken entry never breaks classification.
+    """
+    if not isinstance(value, Mapping):
+        return ()
+    rules = []
+    for name, packages in value.items():
+        if not isinstance(name, str) or not name.strip() or not _is_sequence(packages):
+            continue
+        normalized = frozenset(
+            normalize_name(package) for package in packages if isinstance(package, str) and package.strip()
+        )
+        rules.append(CategoryRule(name=name.strip(), packages=normalized))
+    return tuple(rules)
+
+
+def _is_sequence(value: Any) -> bool:
+    return isinstance(value, Iterable) and not isinstance(value, (str, bytes))
+
+
 @dataclass(frozen=True)
 class Config:
     """Resolved runtime configuration."""
@@ -135,6 +160,7 @@ class Config:
     venv_names: tuple[str, ...] = DEFAULT_VENV_NAMES
     project_files: tuple[str, ...] = DEFAULT_PROJECT_FILES
     search_depth: int = DEFAULT_SEARCH_DEPTH
+    categories: tuple[CategoryRule, ...] = ()
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> Config:
@@ -155,6 +181,7 @@ class Config:
             venv_names=tuple(data.get("venv_names", DEFAULT_VENV_NAMES)),
             project_files=tuple(data.get("project_files", DEFAULT_PROJECT_FILES)),
             search_depth=max(1, int(data.get("search_depth", DEFAULT_SEARCH_DEPTH))),
+            categories=_parse_categories(data.get("categories")),
         )
 
 
@@ -169,5 +196,15 @@ class ConfigLoader:
         return _xdg_config_home() / "vvm" / "config.toml"
 
     def load(self) -> Config:
+        if not self.path.is_file():
+            self._create_default()
         data: dict[str, Any] = read_toml(self.path) if self.path.is_file() else {}
         return Config.from_mapping(data)
+
+    def _create_default(self) -> None:
+        """Seed a new config file (with default categories) on first run."""
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text(DEFAULT_CONFIG_TOML)
+        except OSError:
+            pass

@@ -24,7 +24,7 @@ class PlainVenvFormatter(VenvFormatter):
     """``<path> [<category>] <n> packages``"""
 
     def format(self, venv: Venv) -> str:
-        return f"{venv.path} [{venv.primary_category.value}] {venv.package_count} packages"
+        return f"{venv.path} [{venv.primary_category}] {venv.package_count} packages"
 
 
 class DetectAction(Action):

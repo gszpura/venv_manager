@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from vvm.models import MatchResult, Requirement, Venv, VenvCategory, normalize_name
+from vvm.models import (
+    UNKNOWN_CATEGORY,
+    MatchResult,
+    Requirement,
+    Venv,
+    normalize_name,
+)
 
 
 def test_normalize_name():
@@ -16,7 +22,8 @@ def test_venv_properties():
     venv = Venv(path=Path("/x/.venv"), packages=frozenset({"a", "b"}), python_version="3.11.5")
     assert venv.name == ".venv"
     assert venv.package_count == 2
-    assert venv.primary_category is VenvCategory.UNKNOWN
+    assert venv.primary_category == UNKNOWN_CATEGORY
+    assert Venv(path=Path("/v"), categories=("ai",)).primary_category == "ai"
 
 
 def test_match_result():

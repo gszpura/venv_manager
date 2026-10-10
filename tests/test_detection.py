@@ -8,9 +8,10 @@ from vvm.detection import (
 )
 from vvm.inspection import (
     CategoryClassifier,
+    DefaultCategoryClassifier,
     PackageInspector,
 )
-from vvm.models import VenvCategory
+from vvm.models import UNKNOWN_CATEGORY, CategoryRule
 
 
 class FakeInspector(PackageInspector):
@@ -29,7 +30,7 @@ class RecordingClassifier(CategoryClassifier):
 
     def classify(self, venv_path, packages):
         self.calls += 1
-        return (VenvCategory.UNKNOWN,)
+        return (UNKNOWN_CATEGORY,)
 
 
 def test_current_dir_strategy(make_venv):
@@ -84,3 +85,17 @@ def test_detector_builds_and_caches(make_venv, tmp_path):
     detector.detect()  # second run served from cache
     assert classifier.calls == 1
     assert inspector.calls == [str(venv)]
+
+
+def test_cache_invalidated_when_category_rules_change(make_venv, tmp_path):
+    venv = make_venv(".venv")
+    inspector = FakeInspector({".venv": {"torch"}})
+    locator = VenvLocator([CurrentDirStrategy(venv.parent, [".venv"])])
+    cache_path = tmp_path / "cache.json"
+
+    unknown = VenvDetector(locator, inspector, DefaultCategoryClassifier(), VenvCache(cache_path))
+    assert unknown.detect()[0].primary_category == UNKNOWN_CATEGORY
+
+    rules = (CategoryRule("ai", frozenset({"torch"})), CategoryRule("other", frozenset()))
+    classified = VenvDetector(locator, inspector, DefaultCategoryClassifier(rules), VenvCache(cache_path))
+    assert classified.detect()[0].primary_category == "ai"

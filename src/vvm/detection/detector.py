@@ -75,7 +75,6 @@ class VenvDetector:
             self.cache.put(venv, fingerprint)
         return venv
 
-    @staticmethod
-    def _fingerprint(venv_path: Path) -> str:
+    def _fingerprint(self, venv_path: Path) -> str:
         parts = [pyvenv_cfg(venv_path) or venv_path, find_site_packages(venv_path) or venv_path]
-        return stat_fingerprint(*parts)
+        return f"{stat_fingerprint(*parts)}|classifier:{self.classifier.signature}"

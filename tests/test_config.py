@@ -38,6 +38,25 @@ def test_search_depth_is_configurable():
     assert Config.from_mapping({"search_depth": 0}).search_depth == 1
 
 
+def test_categories_empty_without_config():
+    assert Config.from_mapping({}).categories == ()
+
+
+def test_categories_are_parsed_in_order():
+    config = Config.from_mapping(
+        {"categories": {"server": ["flask"], "ai": ["torch"], "other": []}}
+    )
+    assert [rule.name for rule in config.categories] == ["server", "ai", "other"]
+    assert config.categories[0].packages == frozenset({"flask"})
+    assert config.categories[2].packages == frozenset()
+
+
+def test_malformed_category_entries_are_skipped():
+    config = Config.from_mapping({"categories": {"ai": "torch", "ok": ["Pandas"]}})
+    assert [rule.name for rule in config.categories] == ["ok"]
+    assert config.categories[0].packages == frozenset({"pandas"})
+
+
 def test_default_search_dirs_cover_common_tools(tmp_path, monkeypatch):
     _isolate(monkeypatch, tmp_path)
     dirs = {str(p) for p in Config.from_mapping({}).search_dirs}
@@ -109,6 +128,24 @@ def test_loader_reads_file(tmp_path):
     assert [str(p) for p in config.search_dirs] == ["/only/here"]
 
 
-def test_loader_missing_file_uses_defaults(tmp_path):
-    config = ConfigLoader(tmp_path / "nope.toml").load()
+def test_loader_creates_default_config_with_categories(tmp_path):
+    config_file = tmp_path / "vvm" / "config.toml"
+    config = ConfigLoader(config_file).load()
+    assert config_file.is_file()
+    assert [rule.name for rule in config.categories] == ["ai", "data_science", "server", "other"]
+    assert "torch" in config.categories[0].packages
+    assert config.categories[-1].packages == frozenset()
+
+
+def test_loader_existing_file_without_categories_is_empty(tmp_path):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('search_dirs = ["/only/here"]\n')
+    config = ConfigLoader(config_file).load()
+    assert config.categories == ()
+
+
+def test_loader_missing_file_creates_and_uses_defaults(tmp_path):
+    config_file = tmp_path / "nope.toml"
+    config = ConfigLoader(config_file).load()
+    assert config_file.is_file()
     assert config.search_dirs

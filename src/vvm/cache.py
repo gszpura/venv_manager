@@ -3,18 +3,24 @@
 The cache is a dumb keyed store: callers supply a *fingerprint* (a string that
 changes whenever the environment's contents change) and the cache returns the
 previously resolved :class:`Venv` only when the fingerprint still matches.
+
+The cache is also temporary: the time it was written is stored alongside the
+entries, and once it is older than :data:`DEFAULT_MAX_AGE` seconds the whole
+cache is ignored and regenerated.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
+import time
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Self
 
-from vvm.models import Venv, VenvCategory
+from vvm.models import Venv
 
-_SCHEMA = 1
+_SCHEMA = 2
+DEFAULT_MAX_AGE = 300.0
 
 
 def stat_fingerprint(*paths: Path) -> str:
@@ -34,8 +40,15 @@ def stat_fingerprint(*paths: Path) -> str:
 class VenvCache:
     """JSON-backed cache mapping venv paths to resolved :class:`Venv` objects."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(
+        self,
+        path: Path,
+        max_age: float = DEFAULT_MAX_AGE,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
         self.path = Path(path)
+        self.max_age = max_age
+        self._clock = clock
         self._entries: dict[str, dict] = {}
         self._dirty = False
         self._load()
@@ -48,7 +61,7 @@ class VenvCache:
             path=Path(path),
             packages=frozenset(entry.get("packages", [])),
             python_version=entry.get("python_version"),
-            categories=tuple(VenvCategory(value) for value in entry.get("categories", [])),
+            categories=tuple(str(value) for value in entry.get("categories", [])),
         )
 
     def put(self, venv: Venv, fingerprint: str) -> None:
@@ -56,7 +69,7 @@ class VenvCache:
             "fingerprint": fingerprint,
             "python_version": venv.python_version,
             "packages": sorted(venv.packages),
-            "categories": [category.value for category in venv.categories],
+            "categories": list(venv.categories),
         }
         self._dirty = True
 
@@ -72,7 +85,7 @@ class VenvCache:
         if not self._dirty:
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"schema": _SCHEMA, "venvs": self._entries}
+        payload = {"schema": _SCHEMA, "generated_at": self._clock(), "venvs": self._entries}
         self.path.write_text(json.dumps(payload, indent=2, sort_keys=True))
         self._dirty = False
 
@@ -83,8 +96,14 @@ class VenvCache:
             raw = json.loads(self.path.read_text())
         except (OSError, ValueError):
             return
-        if isinstance(raw, dict) and raw.get("schema") == _SCHEMA:
-            self._entries = raw.get("venvs", {})
+        if not isinstance(raw, dict) or raw.get("schema") != _SCHEMA:
+            return
+        generated_at = raw.get("generated_at")
+        if not isinstance(generated_at, (int, float)):
+            return
+        if self._clock() - generated_at > self.max_age:
+            return
+        self._entries = raw.get("venvs", {})
 
     def __enter__(self) -> Self:
         return self
