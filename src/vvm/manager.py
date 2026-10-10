@@ -65,7 +65,7 @@ class VenvManager:
         """Build a detector whose current-dir strategy targets ``directory``."""
         strategies = [
             CurrentDirStrategy(directory, self.config.venv_names),
-            ConfiguredDirStrategy(self.config.search_dirs),
+            ConfiguredDirStrategy(self.config.search_dirs, max_depth=self.config.search_depth),
         ]
         return VenvDetector(VenvLocator(strategies), self.inspector, self.classifier, self.cache)
 
