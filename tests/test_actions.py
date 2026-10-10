@@ -6,6 +6,7 @@ import pytest
 from vvm.actions import Action, BestAction, ConfigAction, DetectAction, UnlinkAction
 from vvm.actions.config import _SEPARATOR
 from vvm.config import Config
+from vvm.detection.format import TableVenvFormatter
 from vvm.linking import SymlinkLinker
 from vvm.manager import VenvManager
 from vvm.matching import VenvMatcher
@@ -118,6 +119,13 @@ def test_unlink_action_refuses_non_link(tmp_path, capsys):
 def test_detect_action_empty(capsys):
     assert DetectAction(StubDetector([])).run() == 0
     assert "No virtual environments found." in capsys.readouterr().out
+
+
+def test_detect_action_with_table_formatter(capsys):
+    assert DetectAction(StubDetector([SMALL, BIG]), TableVenvFormatter()).run() == 0
+    out = capsys.readouterr().out
+    assert "Path" in out and "Category" in out and "Packages" in out
+    assert "/v/small" in out and "/v/big" in out
 
 
 class NoneReader:

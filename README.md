@@ -1,7 +1,16 @@
 # vvm
 
-Discover Python virtual environments scattered across a machine and match the
-best one to the current project.
+Have too many venvs and want to reuse them, because half of them are pytorch anyway?
+Do this:
+```commandline
+vvm best
+```
+in your project directory.
+
+## How it works?
+
+`vvm` discovers all vens in common dirs
+and picks the one that delivers minimal requirements from your requirements.txt or pyproject.toml.
 
 ## Install
 
@@ -49,9 +58,14 @@ pipx install git+https://github.com/gszpura/venv_manager
 ## Usage
 
 ```bash
-vvm detect          # list detected virtual environments
-vvm best            # find the best venv for the current project
+vvm list            # list detected virtual environments (alias: vvm detect)
+vvm best            # find and link the best venv for the current project
+vvm unlink          # remove the venv link created by `best`
+vvm config          # show the config path, its contents, and default search paths
 ```
+
+Common options: `-C/--directory` to target a project directory, `--config` to
+use a specific config file, and `--no-cache` to ignore the venv cache.
 
 See [RELEASE.md](RELEASE.md) for the release process and how to build the
 standalone executable.

@@ -16,7 +16,7 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
     "Topic :: Utilities",
 ]
-dependencies = []
+dependencies = ["tabulate>=0.10"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]

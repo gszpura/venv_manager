@@ -2,33 +2,23 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TextIO
 
 from vvm.actions.base import Action
 from vvm.config import Config
-from vvm.detection import VenvDetector, build_detector
-from vvm.models import Venv
-
-
-class VenvFormatter(ABC):
-    """Renders a single venv as one summary line."""
-
-    @abstractmethod
-    def format(self, venv: Venv) -> str:
-        """Return the display line for ``venv``."""
-
-
-class PlainVenvFormatter(VenvFormatter):
-    """``<path> [<category>] <n> packages``"""
-
-    def format(self, venv: Venv) -> str:
-        return f"{venv.path} [{venv.primary_category}] {venv.package_count} packages"
+from vvm.detection import (
+    TableVenvFormatter,
+    TextVenvFormatter,
+    VenvDetector,
+    VenvFormatter,
+    build_detector,
+    supports_color,
+)
 
 
 class DetectAction(Action):
-    """Detects venvs and prints a one-line summary for each."""
+    """Detects venvs and prints them, as a table on a terminal."""
 
     def __init__(
         self,
@@ -38,7 +28,12 @@ class DetectAction(Action):
     ) -> None:
         super().__init__(out)
         self.detector = detector
-        self.formatter = formatter or PlainVenvFormatter()
+        if formatter is not None:
+            self.formatter = formatter
+        elif supports_color(self.out):
+            self.formatter = TableVenvFormatter(color=True)
+        else:
+            self.formatter = TextVenvFormatter()
 
     @classmethod
     def build(
@@ -59,6 +54,5 @@ class DetectAction(Action):
         if not venvs:
             print("No virtual environments found.", file=self.out)
             return 0
-        for venv in venvs:
-            print(self.formatter.format(venv), file=self.out)
+        print(self.formatter.render(venvs), file=self.out)
         return 0
