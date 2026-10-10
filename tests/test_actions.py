@@ -1,9 +1,13 @@
 import io
 from pathlib import Path
 
+import pytest
+
 from vvm.actions import Action, BestAction, ConfigAction, DetectAction
 from vvm.actions.config import _SEPARATOR
+from vvm.config import Config
 from vvm.linking import SymlinkLinker
+from vvm.manager import VenvManager
 from vvm.matching import VenvMatcher
 from vvm.models import Requirement, Venv
 
@@ -46,6 +50,24 @@ def test_actions_inherit_base():
     assert issubclass(DetectAction, Action)
     assert issubclass(BestAction, Action)
     assert issubclass(ConfigAction, Action)
+
+
+def test_build_factories_return_actions(tmp_path):
+    config = Config.from_mapping({"cache_path": str(tmp_path / "c.json")})
+    assert isinstance(DetectAction.build(config, directory=tmp_path, use_cache=False), DetectAction)
+    assert isinstance(BestAction.build(config, project_dir=tmp_path, use_cache=False), BestAction)
+    assert isinstance(ConfigAction.build(config, config_path=tmp_path / "config.toml"), ConfigAction)
+
+
+def test_manager_registers_default_actions():
+    manager = VenvManager(config=Config.from_mapping({}))
+    assert set(manager.actions) == {"detect", "best", "config"}
+
+
+def test_manager_unknown_action_raises():
+    manager = VenvManager(config=Config.from_mapping({}))
+    with pytest.raises(ValueError):
+        manager.run("nope")
 
 
 def test_config_action_shows_path_content_and_defaults(tmp_path, capsys):

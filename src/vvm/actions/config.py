@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TextIO
 
 from vvm.actions.base import Action
+from vvm.config import Config, ConfigLoader
 
 _SEPARATOR = "-" * 31
 
@@ -23,6 +24,22 @@ class ConfigAction(Action):
         super().__init__(out)
         self.config_path = Path(config_path)
         self.default_search_dirs = tuple(Path(p) for p in default_search_dirs)
+
+    @classmethod
+    def build(
+        cls,
+        config: Config,
+        *,
+        config_path: Path | None = None,
+        out: TextIO | None = None,
+    ) -> ConfigAction:
+        """Build a config action for ``config_path`` (default: standard path)."""
+        path = Path(config_path).expanduser() if config_path is not None else ConfigLoader.default_path()
+        return cls(
+            config_path=path,
+            default_search_dirs=Config.from_mapping({}).search_dirs,
+            out=out,
+        )
 
     def run(self) -> int:
         content = self.config_path.read_text() if self.config_path.is_file() else ""

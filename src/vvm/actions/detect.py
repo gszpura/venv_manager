@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import TextIO
 
 from vvm.actions.base import Action
-from vvm.detection import VenvDetector
+from vvm.config import Config
+from vvm.detection import VenvDetector, build_detector
 from vvm.models import Venv
 
 
@@ -37,6 +39,20 @@ class DetectAction(Action):
         super().__init__(out)
         self.detector = detector
         self.formatter = formatter or PlainVenvFormatter()
+
+    @classmethod
+    def build(
+        cls,
+        config: Config,
+        *,
+        directory: Path | None = None,
+        use_cache: bool = True,
+        out: TextIO | None = None,
+    ) -> DetectAction:
+        """Build a detect action wired with its own detector for ``directory``."""
+        target = Path(directory) if directory is not None else Path.cwd()
+        detector = build_detector(config, target, use_cache=use_cache)
+        return cls(detector, out=out)
 
     def run(self) -> int:
         venvs = self.detector.detect()

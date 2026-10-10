@@ -1,6 +1,7 @@
 """Virtual environment detection."""
 
 from vvm.detection.detector import VenvDetector, python_version
+from vvm.detection.factory import build_detector
 from vvm.detection.locator import (
     ConfiguredDirStrategy,
     CurrentDirStrategy,
@@ -14,5 +15,6 @@ __all__ = [
     "LocationStrategy",
     "VenvDetector",
     "VenvLocator",
+    "build_detector",
     "python_version",
 ]

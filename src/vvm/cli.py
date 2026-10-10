@@ -74,22 +74,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config_path = getattr(args, "config", None)
-    manager = VenvManager(
-        config_path=Path(config_path) if config_path else None,
-        use_cache=not getattr(args, "no_cache", False),
-    )
+    use_cache = not getattr(args, "no_cache", False)
+    manager = VenvManager(config_path=Path(config_path) if config_path else None)
 
     directory = Path(getattr(args, "directory", "."))
     if args.command == "detect":
-        return manager.detect(directory=directory)
+        return manager.run("detect", directory=directory, use_cache=use_cache)
     if args.command == "config":
-        return manager.show_config()
+        return manager.run("config", config_path=manager.config_path)
     if args.command == "best":
-        return manager.best(
+        return manager.run(
+            "best",
             project_dir=directory,
             link=args.link,
             force=args.force,
             link_name=args.link_name,
+            use_cache=use_cache,
         )
     parser.error(f"unknown command: {args.command}")  # pragma: no cover
     return 2

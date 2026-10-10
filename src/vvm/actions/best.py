@@ -6,10 +6,11 @@ from pathlib import Path
 from typing import TextIO
 
 from vvm.actions.base import Action
-from vvm.detection import VenvDetector
-from vvm.linking import VenvLinker
+from vvm.config import Config
+from vvm.detection import VenvDetector, build_detector
+from vvm.linking import SymlinkLinker, VenvLinker
 from vvm.matching import VenvMatcher
-from vvm.requirements import ProjectRequirementsReader
+from vvm.requirements import ProjectRequirementsReader, default_reader
 
 DEFAULT_LINK_NAME = ".venv"
 
@@ -43,6 +44,32 @@ class BestAction(Action):
         self.link = link
         self.force = force
         self.link_name = link_name
+
+    @classmethod
+    def build(
+        cls,
+        config: Config,
+        *,
+        project_dir: Path | None = None,
+        link: bool = True,
+        force: bool = False,
+        link_name: str = DEFAULT_LINK_NAME,
+        use_cache: bool = True,
+        out: TextIO | None = None,
+    ) -> BestAction:
+        """Build a best action, initializing the detector and collaborators."""
+        target = Path(project_dir) if project_dir is not None else Path.cwd()
+        return cls(
+            detector=build_detector(config, target, use_cache=use_cache),
+            reader=default_reader(config.project_files),
+            matcher=VenvMatcher(),
+            linker=SymlinkLinker(),
+            project_dir=target,
+            link=link,
+            force=force,
+            link_name=link_name,
+            out=out,
+        )
 
     def run(self) -> int:
         requirements = self.reader.read(self.project_dir)
